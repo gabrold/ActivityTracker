@@ -85,6 +85,10 @@ header {
     padding: 0.2em;
     text-align: center;
 }
+.activity-count::-webkit-inner-spin-button{
+    -webkit-appearance: none;
+    margin: 0;
+}
 
 .running-total {
     text-align: right; 
