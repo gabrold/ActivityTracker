@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Activity Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h2>Activity Tracker</h2>
+    </header>
+    <button id="change-theme-button" class="btn btn-change-theme">∯ Dark Mode</button>
+
+    <div id="auth-section">
+        <img src="https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s48-fcrop64=1,00000000ffffffff-rw" alt="Google Logo" />
+        <button id="auth-button" class="btn-auth">Login with Google</button>
+    </div>
+
+    <!-- Selected team display (shown only when a team is selected) -->
+    <div id="selected-team-row" style="display: none;">
+        <span id="selected-team-label"></span>
+        <button id="change-team-button" class="btn btn-change-team">Change Team</button>
+    </div>
+
+    <!-- Team selection dropdown (shown only when no team is selected) -->
+    <div id="team-selection" style="display: none;">
+        <h3>Select Your Team</h3>
+        <select id="team-select"></select>
+        <button id="select-team-button" class="btn btn-select-team">Select Team</button>
+    </div>
+
+    <div id="activity-list" style="display: none;">
+    </div>
+
+    <footer>
+        <div id="sync-status">
+            <div id="last-sync-time">Last Synced: Never</div>
+            <span>|</span>
+            <div id="next-sync-countdown">Next Sync: --</div>
+        </div>
+        <div id="status-message"></div>
+        <button id="logout-button" class="btn btn-logout" style="display: none;">Logout</button>   
+    </footer>
+    <!-- ...Scripts start... -->
+    <script src="scripts/Sortable.min.js"></script>
+    <script src="scripts/sidepanel.js"></script>
+    <!-- ...Scripts end... -->
+</body>
+</html>

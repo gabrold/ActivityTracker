@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Team Activity Tracker",
+  "version": "1.9",
+  "description": "Track team activities and tasks performed by user.",
+  "permissions": [
+    "identity",
+    "storage",
+    "scripting",
+    "activeTab",
+    "sidePanel",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://www.googleapis.com/",
+    "https://accounts.google.com/"
+  ],
+  "icons": {
+  "16": "icons/icon16.png",
+  "32": "icons/icon32.png",
+  "48": "icons/icon48.png",
+  "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Open Activity Tracker",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "oauth2": {
+    "client_id": "914649296911-6vqpobolret12jqgedhk3rkvp4cln52v.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
+  },
+  "key": "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDD98PWgAfVuhf9P36r4V2/PUnbkDxhu+dKrT2Ki1bhGoefs6z7qsKBnhqXQ9dYoimzR9IxQIl5eK/npq9dl/1/m68ALrnkaksJeMTs5ik3OU/a6qHfY9BfjuSgr3xRoBp4Qk3YC4cj3QNzmY/HTdKAzviYcMbFfQds3SWuZdXIjD+ZXTrLgnQMZmjoWQshRAQ5FfxI9S3n9cRkZP2ALwVxM8PvDp69Gna7g/0xCV+CFQaXpmBnE2vN7ikTNY4lyvEHkIdBGp/RRo90ZR0Ox9LlKr2JkRAGGrB4AEBZm7One8nNYNcHb/UasnXC3uje093cWTBheLTU+rGGPor448UJAgMBAAECggEAHTxtlHwYBHl1nWvySKT1Xik/8j3GhF41gh1DvSj569i6uxy3MKSnzWalA5mKGx22Uu+NcEOh6Y6+ejTn8h1ReHmQK4V3vkK4ByW5W2PLFQNmjSZ2wo5wRpFZko9xC0xze9WIf4mDaS+j6tnSFXiKxc9wTxh5ec/Ot8hrwrpL9qs9F/m2BphI5Y442DPCMo8yc/83JEManz4Z0GMZeoxlMt+H+rIKI2bRE+sBhcIfSgxFqywEEBolLd4lzFPJXHNeId3KE0PM5WPuU1OZZNaHT+lbHF6oaAPoKT7vZi8jLoWfR8QIzrVvqOIimq8gEj7h6idPDLQdRjWS/u34gJeXMQKBgQD+UYXr2ja7KaXCFCa6hx0XE2vijI6vKqIneuPkF/rXDYvAbBCsw+/T42TKQaIMkZ1kPQGsPgLrEJhwaLz5Gage3gGKMmeWeBHkcvJEZYjaFr1E90Q+tBNSSn3aGoHxPh6TFBO9m/YJOYV7I27wzfbJQkGJISVjFGYqv4Sy7R+U7wKBgQDFQ3k91AzKpFr2vuuO0nYct3FSyy25gKr3eaBmcllDUecOusLjsSfdmNyNOqU6ZIWbG3IjYfsaoCHaUycgVbVpv0HxMfHoDCLe+OFI7CMKF9PI7POirfmto6LHlUN6EXAfgb3GpQUnKsFc3/oSxYTSdDeZmdLL2AkPyZklwoV1hwKBgQDJnu4SVtSvO0xrejheBsI8Sixs1kxEeQNHU3kamxxFpDqYWdQ6c7hN/ugoJTKIzmS+VFNgL2V24JhJ/e9beUi89/q2ilFvjE97EtoY+XoulHqHE5VqNK9gvSfbYsqD7GCm7/LajqvXEmBNiIDqrg8p7boxMjMGwuRgnadhhvZTxwKBgFVvQ7Njg6bASCVVyu+wdzc4u/v/w230LBfCtZWpML/XWRsoCABVWc6/xcXlAGqp3rOuz2BDr114vTCxkuCOPmPuUcEEwKCfoPqxD+FlZEeayj7bYSmz788kb/vAydi0dLswleDS18h+3AA9gTFgGoaLjwkXdhSTHFmaFpokBWlBAoGAd1PJ7QcptLZC4b3unP77c5h4bM2Nd06eNhv4qocdW3HIGcCl+J6OyxLfnhZqywsmXhqvVKiWwJLjjSZvcJcMozl8FE5F5+2eOqIqCqYmkMQzqwweMFYCvNoI2g/sE1LEw/VZAQIstxeRkiG0MKZnLn90FnRxNVy3DjZ3RkS1o6g="
+}
