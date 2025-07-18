@@ -9,7 +9,9 @@
     <header>
         <h2>Activity Tracker</h2>
     </header>
+
     <button id="change-theme-button" class="btn btn-change-theme">∯ Dark Mode</button>
+    <button id="logout-button" class="btn btn-logout" style="display: none;">∅ Logout</button>
 
     <div id="auth-section">
         <img src="https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s48-fcrop64=1,00000000ffffffff-rw" alt="Google Logo" />
@@ -19,7 +21,10 @@
     <!-- Selected team display (shown only when a team is selected) -->
     <div id="selected-team-row" style="display: none;">
         <span id="selected-team-label"></span>
-        <button id="change-team-button" class="btn btn-change-team">Change Team</button>
+        <div>
+            <button id="refresh-data-button" class="btn btn-refresh" title="Refresh teams and activities">⟳</button>
+            <button id="recalculate-totals-button" class="btn btn-recalculate" title="Recalculate running totals">∑</button>
+        </div>
     </div>
 
     <!-- Team selection dropdown (shown only when no team is selected) -->
@@ -32,14 +37,18 @@
     <div id="activity-list" style="display: none;">
     </div>
 
+    <div id="loading-indicator" style="display: none; text-align: center; padding: 1em;">
+        <div class="spinner"></div>
+        <p style="font-size: 0.7rem;">Loading</p>
+    </div>
+
     <footer>
         <div id="sync-status">
             <div id="last-sync-time">Last Synced: Never</div>
             <span>|</span>
             <div id="next-sync-countdown">Next Sync: --</div>
         </div>
-        <div id="status-message"></div>
-        <button id="logout-button" class="btn btn-logout" style="display: none;">Logout</button>   
+        <div id="status-message"></div>   
     </footer>
     <!-- ...Scripts start... -->
     <script src="scripts/Sortable.min.js"></script>
