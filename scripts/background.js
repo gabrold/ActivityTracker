@@ -11,7 +11,7 @@ chrome.storage.sync.get('loggedInUserEmail', (obj) => {
 });
 
 // Constants for Sheets API and Sync Interval
-const SPREADSHEET_ID = '1SdRqelVjMs8rpb48Tdn9ZK4Xc05u98D1_lSLdEmfgnA';
+const SPREADSHEET_ID = 'HERE GOES THE SPREADSHEET ID';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
 const SYNC_INTERVAL_MINUTES = 15; // Sync data every 15 minutes
 const SYNC_ALARM_NAME = 'activityTrackerSync';
