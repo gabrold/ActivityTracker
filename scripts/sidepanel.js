@@ -73,13 +73,22 @@ let statusMessageTimeoutId;
 let statusMessageAlternateIntervalId = null;
 let showWaiting = true;
 
-// Cache configuration
-const CACHE_DURATION_DAYS = 30;
-const CACHE_DURATION_MS = CACHE_DURATION_DAYS * 24 * 60 * 60 * 1000;
+// Cache configuration - will be loaded from config
+let CACHE_DURATION_DAYS = 30;
+let CACHE_DURATION_MS = CACHE_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
-// Local sync history configuration
-const SYNC_HISTORY_RETENTION_DAYS = 7; // Keep sync history for 7 days
-const SYNC_HISTORY_RETENTION_MS = SYNC_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+// Local sync history configuration - will be loaded from config
+let SYNC_HISTORY_RETENTION_DAYS = 7; // Keep sync history for 7 days
+let SYNC_HISTORY_RETENTION_MS = SYNC_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+// Initialize cache settings from config
+(async () => {
+    const cfg = await loadConfig();
+    CACHE_DURATION_DAYS = cfg.caching.durationDays;
+    CACHE_DURATION_MS = CACHE_DURATION_DAYS * 24 * 60 * 60 * 1000;
+    SYNC_HISTORY_RETENTION_DAYS = cfg.caching.syncHistoryRetentionDays;
+    SYNC_HISTORY_RETENTION_MS = SYNC_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+})();
 
 // Helper functions for loading indicator
 function showLoadingIndicator(message = 'Loading') {
@@ -166,6 +175,36 @@ async function clearAllUserCache() {
 const SPREADSHEET_ID = 'HERE GOES YOUR SPREADSHEET ID';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email';
 
+// Configuration management
+let config = null;
+
+async function loadConfig() {
+    if (config) return config; // Return cached config
+    
+    try {
+        const response = await fetch(chrome.runtime.getURL('config.json'));
+        if (!response.ok) {
+            throw new Error(`Failed to load config: ${response.status}`);
+        }
+        config = await response.json();
+        console.log('Sidepanel: Config loaded:', config);
+        return config;
+    } catch (error) {
+        console.error('Error loading config, using defaults:', error);
+        // Fallback to default values
+        config = {
+            spreadsheetId: '1SdRqelVjMs8rpb48Tdn9ZK4Xc05u98D1_lSLdEmfgnA',
+            syncIntervalMinutes: 15,
+            scopes: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
+            syncAlarmName: 'activityTrackerSync',
+            caching: { durationDays: 30, syncHistoryRetentionDays: 7 },
+            heartbeat: { intervalSeconds: 25 },
+            sheets: { configRange: 'CONFIG!A:C', teamsRange: 'CONFIG!A:A', logsRange: 'Logs!A:D' }
+        };
+        return config;
+    }
+}
+
 // THEME TOGGLE
 const changeThemeButton = document.getElementById('change-theme-button');
 
@@ -211,10 +250,11 @@ async function getAuthToken(interactive = false) {
 }
 
 async function sheetsApiGet(range) {
+    const cfg = await loadConfig();
     const token = await getAuthToken(false);
     if (!token) throw new Error('No auth token for Sheets API');
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${cfg.spreadsheetId}/values/${encodeURIComponent(range)}`;
 
     const resp = await fetch(url, {
         method: 'GET',
@@ -310,8 +350,9 @@ async function fetchRunningTotalsFromSheets(dateKey = null) {
     try {
         console.log(`Fetching running totals from Google Sheets for ${dateKey}...`);
         
+        const cfg = await loadConfig();
         // Get all data from the Logs sheet
-        const data = await sheetsApiGet('Logs!A:D');
+        const data = await sheetsApiGet(cfg.sheets.logsRange);
         if (!data.values || data.values.length === 0) {
             console.log('No data found in Logs sheet');
             return {};
@@ -607,7 +648,8 @@ async function fetchTeamsFromSheets(useCache = true) {
     
     try {
         console.log('Fetching teams from Google Sheets');
-        const data = await sheetsApiGet('CONFIG!A:A');
+        const cfg = await loadConfig();
+        const data = await sheetsApiGet(cfg.sheets.teamsRange);
         if (!data.values || data.values.length === 0) {
             throw new Error('No team data found in spreadsheet');
         }
@@ -654,7 +696,8 @@ async function fetchActivitiesForTeam(teamName, useCache = true) {
     
     try {
         console.log(`Fetching activities for team ${teamName} from Google Sheets`);
-        const data = await sheetsApiGet('CONFIG!A:C');
+        const cfg = await loadConfig();
+        const data = await sheetsApiGet(cfg.sheets.configRange);
         if (!data.values) {
             throw new Error('No activity data found in spreadsheet');
         }

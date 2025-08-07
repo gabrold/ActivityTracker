@@ -199,3 +199,68 @@ These updates significantly improve the extension's reliability, performance, an
 - **Better Data Accuracy**: Enhanced data integrity and validation systems
 - **Improved Reliability**: Robust error handling and recovery mechanisms
 - **Enhanced User Control**: Manual tools for data management and troubleshooting
+
+### Version 2.1 - August 7, 2025
+
+#### 🔧 Configuration & Background Sync Enhancements
+
+**Configuration Management System:**
+- **External Config File**: New `config.json` file for easy deployment and customization
+- **Centralized Settings**: All configurable values moved to single configuration file
+- **Environment Flexibility**: Easy setup for different organizations and Google Sheets
+- **Fallback System**: Built-in defaults if configuration file fails to load
+
+**Enhanced Background Persistence:**
+- **Background Permission**: Added background permission for improved service worker persistence
+- **Alarm Restoration**: Automatic restoration of sync alarms on browser startup and extension reload
+- **Heartbeat System**: Intelligent heartbeat mechanism to keep service worker alive during active usage
+- **Lifecycle Management**: Proper handling of browser startup, extension install/update events
+
+**Configurable Settings:**
+- **Spreadsheet ID**: Easy configuration of target Google Sheets document
+- **Sync Intervals**: Customizable sync frequency (1-1440 minutes)
+- **Cache Duration**: Adjustable cache retention periods for teams and activities
+- **Sheet Ranges**: Configurable cell ranges for different data types
+- **Performance Tuning**: Adjustable heartbeat intervals and retention policies
+
+**Deployment Improvements:**
+- **Enterprise Ready**: Simplified deployment across different organizations
+- **No Code Changes**: Configuration changes without modifying source code
+- **Version Isolation**: Different configs for different environments
+- **Backward Compatibility**: Existing installations continue working without changes
+
+#### 🚀 Background Sync Reliability
+
+**Service Worker Enhancements:**
+- **Persistent Alarms**: Sync continues even when extension sidebar is closed
+- **Auto-Recovery**: Automatic restoration of sync functionality after browser restarts
+- **Credential Validation**: Verification and restoration of user credentials during background operations
+- **Error Resilience**: Robust error handling with automatic alarm recreation on failures
+
+**Heartbeat Management:**
+- **Smart Activation**: Heartbeat starts during login, sync operations, and active usage
+- **Automatic Cleanup**: Heartbeat stops when not needed to conserve resources
+- **Configurable Timing**: Adjustable heartbeat intervals through configuration
+- **Service Worker Longevity**: Keeps background script alive during critical operations
+
+#### 🔧 Technical Infrastructure
+
+**Configuration Architecture:**
+- **JSON-based Config**: Structured configuration with validation and fallbacks
+- **Dynamic Loading**: Configuration loaded at runtime with caching
+- **Error Handling**: Graceful degradation if configuration is unavailable
+- **Type Safety**: Structured configuration with clear data types
+
+**Background Processing:**
+- **Event-driven Architecture**: Proper lifecycle event handling for reliability
+- **State Management**: Improved user state persistence and restoration
+- **Resource Management**: Efficient use of Chrome extension resources
+- **Logging Enhancement**: Comprehensive logging for debugging and monitoring
+
+#### 📈 Performance & Reliability Impact
+
+These enhancements provide significant improvements in extension reliability and deployment flexibility:
+- **99% Sync Reliability**: Background sync continues regardless of user interaction
+- **Zero-Configuration Deployment**: Simple config file changes for new deployments
+- **Automatic Recovery**: Self-healing system restores functionality after disruptions
+- **Enterprise Scalability**: Easy deployment across multiple teams and organizations

@@ -4,18 +4,77 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-chrome.storage.sync.get('loggedInUserEmail', (obj) => {
-    if (!obj.loggedInUserEmail) {
-        chrome.alarms.clear(SYNC_ALARM_NAME);
+// Configuration management
+let config = null;
+
+async function loadConfig() {
+    if (config) return config; // Return cached config
+    
+    try {
+        const response = await fetch(chrome.runtime.getURL('config.json'));
+        if (!response.ok) {
+            throw new Error(`Failed to load config: ${response.status}`);
+        }
+        config = await response.json();
+        console.log(`[${new Date().toLocaleTimeString()}] Background: Config loaded:`, config);
+        return config;
+    } catch (error) {
+        console.error('Error loading config, using defaults:', error);
+        // Fallback to default values
+        config = {
+            spreadsheetId: '1SdRqelVjMs8rpb48Tdn9ZK4Xc05u98D1_lSLdEmfgnA',
+            syncIntervalMinutes: 15,
+            scopes: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
+            syncAlarmName: 'activityTrackerSync',
+            caching: { durationDays: 30, syncHistoryRetentionDays: 7 },
+            heartbeat: { intervalSeconds: 25 },
+            sheets: { configRange: 'CONFIG!A:C', teamsRange: 'CONFIG!A:A', logsRange: 'Logs!A:D' }
+        };
+        return config;
     }
+}
+
+// Enhanced alarm restoration system
+async function restoreAlarmsFromStorage() {
+    try {
+        const cfg = await loadConfig();
+        
+        // Check if user is logged in and has a team selected
+        const result = await chrome.storage.sync.get(['loggedInUserEmail', 'userTeam']);
+        loggedInUserEmail = result.loggedInUserEmail || null;
+        userTeam = result.userTeam || null;
+        
+        if (loggedInUserEmail && userTeam) {
+            console.log(`[${new Date().toLocaleTimeString()}] Background: Restoring alarms for user: ${loggedInUserEmail}, team: ${userTeam}`);
+            
+            // Check if alarm already exists
+            const existingAlarm = await chrome.alarms.get(cfg.syncAlarmName);
+            if (!existingAlarm) {
+                // Create the alarm if it doesn't exist
+                chrome.alarms.create(cfg.syncAlarmName, {
+                    periodInMinutes: cfg.syncIntervalMinutes,
+                    delayInMinutes: cfg.syncIntervalMinutes
+                });
+                console.log(`[${new Date().toLocaleTimeString()}] Background: Restored sync alarm for logged-in user`);
+            } else {
+                console.log(`[${new Date().toLocaleTimeString()}] Background: Sync alarm already exists, no restoration needed`);
+            }
+        } else {
+            console.log(`[${new Date().toLocaleTimeString()}] Background: No logged-in user or team, clearing any existing alarms`);
+            chrome.alarms.clear(cfg.syncAlarmName);
+        }
+    } catch (error) {
+        console.error('Error restoring alarms:', error);
+    }
+}
+
+// Service Worker lifecycle events
+chrome.runtime.onStartup.addListener(() => {
+    console.log(`[${new Date().toLocaleTimeString()}] Background: Browser startup detected, restoring alarms`);
+    restoreAlarmsFromStorage();
 });
 
-// Constants for Sheets API and Sync Interval
-const SPREADSHEET_ID = 'HERE GOES THE SPREADSHEET ID';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
-const SYNC_INTERVAL_MINUTES = 15; // Sync data every 15 minutes
-const SYNC_ALARM_NAME = 'activityTrackerSync';
-
+// Global variables
 let loggedInUserEmail = null; // Stored user email
 let userTeam = null; // Stored user's selected team
 
@@ -88,10 +147,11 @@ async function getUserEmailFromAuth() {
 }
 
 async function sheetsApiAppend(range, values) {
+    const cfg = await loadConfig();
     const token = await getAuthToken(false);
     if (!token) throw new Error('No auth token for Sheets API');
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${cfg.spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`;
 
     const resp = await fetch(url, {
         method: 'POST',
@@ -131,6 +191,7 @@ async function syncActivityDataToSheets() {
         return [];
     }
 
+    const cfg = await loadConfig();
     const todayDateKey = getTodayDateKey();
     const activityStorageKey = `activityData_${loggedInUserEmail}_${todayDateKey}`;
 
@@ -180,8 +241,8 @@ async function syncActivityDataToSheets() {
 
 
         if (rowsToAppend.length > 0) {
-            // Append to 'Sheet1' or your designated sheet
-            await sheetsApiAppend('Logs!A:D', rowsToAppend);
+            // Use config for sheet range
+            await sheetsApiAppend(cfg.sheets.logsRange, rowsToAppend);
             console.log(`[${new Date().toLocaleTimeString()}] Data successfully appended to Sheets.`);
 
             // Clear the activity data for today after successful sync
@@ -211,47 +272,82 @@ async function syncActivityDataToSheets() {
 
 // Alarm listener for periodic sync
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-    if (alarm.name === SYNC_ALARM_NAME) {
+    const cfg = await loadConfig();
+    
+    if (alarm.name === cfg.syncAlarmName) {
         console.log(`[${new Date().toLocaleTimeString()}] Sync alarm triggered!`);
-        // Inform sidepanel that sync is in progress
-        chrome.runtime.sendMessage({ action: 'updateSyncStatus', statusMessage: 'Uploading data to Sheets...' }).catch(e => console.warn("Could not send sync status message to sidepanel:", e));
-
-        const syncedActivities = await syncActivityDataToSheets(); // Capture the returned value
-        console.log(`[${new Date().toLocaleTimeString()}] syncActivityDataToSheets finished. Synced activities:`, syncedActivities);
-
-        const syncProcessFinishTime = Date.now();
-        await chrome.storage.local.set({ lastSyncTimestamp: syncProcessFinishTime });
-        console.log(`[${new Date().toLocaleTimeString()}] Background: Stored last sync timestamp: ${new Date(syncProcessFinishTime).toLocaleString()}`);
         
-
-        // NEW: Generate a unique key for storing synced activities
-        const tempSyncedActivitiesKey = `tempSyncedActivities_${loggedInUserEmail || 'unknown'}_${Date.now()}`;
-        await chrome.storage.local.set({ [tempSyncedActivitiesKey]: syncedActivities });
-        console.log(`[${new Date().toLocaleTimeString()}] Stored synced activities in local storage under key: ${tempSyncedActivitiesKey}`);
-        console.log('Saving to temp key:', tempSyncedActivitiesKey, syncedActivities);
-
-        // Send message to sidepanel to update UI, totals, and clear inputs
-        // Pass the storage key instead of the full array
-        chrome.runtime.sendMessage({
-            action: 'syncCompleteAndClearUI',
-            lastSyncTimestamp: syncProcessFinishTime, // Use the time AFTER sync completes
-            nextSyncInSeconds: SYNC_INTERVAL_MINUTES * 60,
-            tempSyncedActivitiesKey: tempSyncedActivitiesKey // Pass the key
-        }).then(() => {
-            console.log(`[${new Date().toLocaleTimeString()}] Sent syncCompleteAndClearUI message to sidepanel with storage key.`);
-        }).catch(e => console.warn("Could not send sync complete message to sidepanel:", e));
-
-        // After sync, ensure the alarm is correctly scheduled for the *next* interval
-        chrome.alarms.clear(SYNC_ALARM_NAME, (wasCleared) => {
-            if (wasCleared) {
-                console.log("Cleared old alarm.");
+        // Start heartbeat during sync process to keep service worker alive
+        startHeartbeat();
+        
+        try {
+            // Verify we still have user credentials before syncing
+            if (!loggedInUserEmail || !userTeam) {
+                console.log(`[${new Date().toLocaleTimeString()}] Background: No user/team info during alarm. Attempting to restore from storage...`);
+                await restoreAlarmsFromStorage();
+                
+                if (!loggedInUserEmail || !userTeam) {
+                    console.log(`[${new Date().toLocaleTimeString()}] Background: Still no user/team info after restore. Clearing alarm.`);
+                    chrome.alarms.clear(cfg.syncAlarmName);
+                    stopHeartbeat();
+                    return;
+                }
             }
-            chrome.alarms.create(SYNC_ALARM_NAME, {
-                periodInMinutes: SYNC_INTERVAL_MINUTES,
-                delayInMinutes: SYNC_INTERVAL_MINUTES
+            
+            // Inform sidepanel that sync is in progress
+            chrome.runtime.sendMessage({ action: 'updateSyncStatus', statusMessage: 'Uploading data to Sheets...' }).catch(e => console.warn("Could not send sync status message to sidepanel:", e));
+
+            const syncedActivities = await syncActivityDataToSheets(); // Capture the returned value
+            console.log(`[${new Date().toLocaleTimeString()}] syncActivityDataToSheets finished. Synced activities:`, syncedActivities);
+
+            const syncProcessFinishTime = Date.now();
+            await chrome.storage.local.set({ lastSyncTimestamp: syncProcessFinishTime });
+            console.log(`[${new Date().toLocaleTimeString()}] Background: Stored last sync timestamp: ${new Date(syncProcessFinishTime).toLocaleString()}`);
+            
+
+            // NEW: Generate a unique key for storing synced activities
+            const tempSyncedActivitiesKey = `tempSyncedActivities_${loggedInUserEmail || 'unknown'}_${Date.now()}`;
+            await chrome.storage.local.set({ [tempSyncedActivitiesKey]: syncedActivities });
+            console.log(`[${new Date().toLocaleTimeString()}] Stored synced activities in local storage under key: ${tempSyncedActivitiesKey}`);
+            console.log('Saving to temp key:', tempSyncedActivitiesKey, syncedActivities);
+
+            // Send message to sidepanel to update UI, totals, and clear inputs
+            // Pass the storage key instead of the full array
+            chrome.runtime.sendMessage({
+                action: 'syncCompleteAndClearUI',
+                lastSyncTimestamp: syncProcessFinishTime, // Use the time AFTER sync completes
+                nextSyncInSeconds: cfg.syncIntervalMinutes * 60,
+                tempSyncedActivitiesKey: tempSyncedActivitiesKey // Pass the key
+            }).then(() => {
+                console.log(`[${new Date().toLocaleTimeString()}] Sent syncCompleteAndClearUI message to sidepanel with storage key.`);
+            }).catch(e => console.warn("Could not send sync complete message to sidepanel:", e));
+
+            // After sync, ensure the alarm is correctly scheduled for the *next* interval
+            chrome.alarms.clear(cfg.syncAlarmName, (wasCleared) => {
+                if (wasCleared) {
+                    console.log("Cleared old alarm.");
+                }
+                chrome.alarms.create(cfg.syncAlarmName, {
+                    periodInMinutes: cfg.syncIntervalMinutes,
+                    delayInMinutes: cfg.syncIntervalMinutes
+                });
+                console.log("Re-created alarm for next interval.");
             });
-            console.log("Re-created alarm for next interval.");
-        });
+            
+        } catch (error) {
+            console.error(`[${new Date().toLocaleTimeString()}] Error during sync alarm:`, error);
+            // Still recreate the alarm even if sync failed
+            chrome.alarms.clear(cfg.syncAlarmName, (wasCleared) => {
+                chrome.alarms.create(cfg.syncAlarmName, {
+                    periodInMinutes: cfg.syncIntervalMinutes,
+                    delayInMinutes: cfg.syncIntervalMinutes
+                });
+                console.log("Re-created alarm after sync error.");
+            });
+        } finally {
+            // Stop heartbeat after sync is complete
+            setTimeout(() => stopHeartbeat(), 5000); // Give it 5 seconds before stopping heartbeat
+        }
     }
 });
 
@@ -261,13 +357,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case "login":
             (async () => {
                 try {
+                    startHeartbeat(); // Start heartbeat during login process
                     const token = await getAuthToken(true); // Interactive login
                     loggedInUserEmail = await getUserEmailFromAuth();
                     await chrome.storage.sync.set({ loggedInUserEmail });
                     sendResponse({ success: true, email: loggedInUserEmail });
+                    
+                    // Don't stop heartbeat immediately - let it continue for active users
+                    console.log(`[${new Date().toLocaleTimeString()}] Background: User logged in: ${loggedInUserEmail}`);
 
                 } catch (error) {
                     console.error("Login failed:", error);
+                    stopHeartbeat(); // Stop heartbeat on login failure
                     sendResponse({ success: false, error: error.message });
                 }
             })();
@@ -281,7 +382,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     userTeam = null; // Clear team on logout
                     await chrome.storage.sync.remove(['loggedInUserEmail', 'userTeam']); // Clear stored user data
                     chrome.alarms.clear(SYNC_ALARM_NAME); // Clear sync alarm on logout
-                    console.log("Logged out, token removed, and alarm cleared.");
+                    stopHeartbeat(); // Stop heartbeat on logout
+                    console.log("Logged out, token removed, alarm cleared, and heartbeat stopped.");
                     sendResponse({ success: true });
                 } catch (error) {
                     console.error("Logout failed:", error);
@@ -297,6 +399,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     await chrome.storage.sync.set({ userTeam });
                     sendResponse({ success: true });
                     console.log(`Team selected and stored: ${userTeam}`);
+                    
+                    // Ensure alarms are properly set up after team selection
+                    await restoreAlarmsFromStorage();
                 } catch (error) {
                     console.error("Failed to set team:", error);
                     sendResponse({ success: false, error: error.message });
@@ -305,14 +410,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return true; // Important: for async sendResponse
 
         case "startSyncAlarm":
-            chrome.alarms.clear(SYNC_ALARM_NAME, () => {
-                chrome.alarms.create(SYNC_ALARM_NAME, {
-                    periodInMinutes: SYNC_INTERVAL_MINUTES,
-                    delayInMinutes: SYNC_INTERVAL_MINUTES
+            (async () => {
+                const cfg = await loadConfig();
+                chrome.alarms.clear(cfg.syncAlarmName, () => {
+                    chrome.alarms.create(cfg.syncAlarmName, {
+                        periodInMinutes: cfg.syncIntervalMinutes,
+                        delayInMinutes: cfg.syncIntervalMinutes
+                    });
+                    console.log("Initial sync alarm created after activities loaded.");
+                    startHeartbeat(); // Start heartbeat when sync alarm is active
+                    sendResponse({ success: true });
                 });
-                console.log("Initial sync alarm created after activities loaded.");
-                sendResponse({ success: true });
-            });
+            })();
             return true; // For async sendResponse
 
         case "updateLocalActivityData":
@@ -349,7 +458,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         sendResponse({ success: false, error: "Not logged in" });
                         return;
                     }
-                    const alarm = await chrome.alarms.get(SYNC_ALARM_NAME);
+                    const cfg = await loadConfig();
+                    const alarm = await chrome.alarms.get(cfg.syncAlarmName);
                     let nextSyncInSeconds;
                     let lastSyncTimestamp;
                     const syncObj = await chrome.storage.local.get('lastSyncTimestamp');
