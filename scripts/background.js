@@ -74,37 +74,6 @@ chrome.runtime.onStartup.addListener(() => {
     restoreAlarmsFromStorage();
 });
 
-chrome.runtime.onInstalled.addListener((details) => {
-    console.log(`[${new Date().toLocaleTimeString()}] Background: Extension installed/updated, reason: ${details.reason}`);
-    restoreAlarmsFromStorage();
-});
-
-// Heartbeat system to keep service worker alive during active usage
-let heartbeatInterval;
-
-async function startHeartbeat() {
-    if (heartbeatInterval) return; // Already running
-    
-    const cfg = await loadConfig();
-    const intervalMs = cfg.heartbeat.intervalSeconds * 1000;
-    
-    heartbeatInterval = setInterval(() => {
-        // Simple heartbeat - just log to keep service worker alive
-        console.log(`[${new Date().toLocaleTimeString()}] Background: Heartbeat - keeping service worker alive`);
-    }, intervalMs);
-}
-
-function stopHeartbeat() {
-    if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-        console.log(`[${new Date().toLocaleTimeString()}] Background: Heartbeat stopped`);
-    }
-}
-
-// Initialize on service worker startup
-restoreAlarmsFromStorage();
-
 // Global variables
 let loggedInUserEmail = null; // Stored user email
 let userTeam = null; // Stored user's selected team

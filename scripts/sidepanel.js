@@ -172,7 +172,7 @@ async function clearAllUserCache() {
     }
 }
 
-const SPREADSHEET_ID = '1SdRqelVjMs8rpb48Tdn9ZK4Xc05u98D1_lSLdEmfgnA';
+const SPREADSHEET_ID = 'HERE GOES YOUR SPREADSHEET ID';
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email';
 
 // Configuration management
