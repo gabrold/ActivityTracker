@@ -1,0 +1,18 @@
+{
+  "spreadsheetId": "1SdRqelVjMs8rpb48Tdn9ZK4Xc05u98D1_lSLdEmfgnA",
+  "syncIntervalMinutes": 15,
+  "scopes": "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email",
+  "syncAlarmName": "activityTrackerSync",
+  "caching": {
+    "durationDays": 30,
+    "syncHistoryRetentionDays": 7
+  },
+  "heartbeat": {
+    "intervalSeconds": 25
+  },
+  "sheets": {
+    "configRange": "CONFIG!A:C",
+    "teamsRange": "CONFIG!A:A",
+    "logsRange": "Logs!A:D"
+  }
+}
